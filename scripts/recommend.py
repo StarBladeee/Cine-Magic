@@ -83,8 +83,30 @@ Examples:
 # DeepFMRecommender 延迟导入（避免 torch import 拖慢非深度学习场景）
 
 
-def load_model(model_type: str, model_dir: str) -> BaseRecommender | None:
-    """加载已训练的模型"""
+def load_model(model_type: str, model_dir: str, movies_df=None) -> BaseRecommender | None:
+    """加载已训练的模型。支持 .pkl (Phase 1) 和 .pt (Phase 2)"""
+    # Phase 2: PyTorch 模型 (.pt)
+    if model_type in ("lightgcn", "deepfm"):
+        model_path = os.path.join(model_dir, f"{model_type}.pt")
+        if not os.path.exists(model_path):
+            print(f"❌ Model '{model_type}' not found at {model_path}")
+            available = _list_models(model_dir)
+            if available:
+                print(f"   Available: {', '.join(available)}")
+            else:
+                print(f"   Run 'python scripts/train_{model_type}.py' first.")
+            return None
+        if model_type == "lightgcn":
+            from src.models.lightgcn import LightGCN
+            model = LightGCN()
+            model.load(model_path)
+        else:  # deepfm
+            from src.models.deepfm import DeepFMRecommender
+            model = DeepFMRecommender()
+            model.load(model_path, movies_df=movies_df)
+        return model
+
+    # Phase 1: scikit-surprise 模型 (.pkl)
     model_path = os.path.join(model_dir, f"{model_type}.pkl")
     if not os.path.exists(model_path):
         print(f"❌ Model '{model_type}' not found at {model_path}")
@@ -103,17 +125,19 @@ def _list_models(model_dir: str) -> list[str]:
     """列出可用模型文件"""
     if not os.path.isdir(model_dir):
         return []
-    return [
-        f.replace(".pkl", "")
-        for f in os.listdir(model_dir)
-        if f.endswith(".pkl")
-    ]
+    models = []
+    for f in os.listdir(model_dir):
+        if f.endswith(".pkl"):
+            models.append(f.replace(".pkl", ""))
+        elif f.endswith(".pt"):
+            models.append(f.replace(".pt", ""))
+    return models
 
 
 def _format_score(score: float) -> str:
     """将预测得分格式化为星级"""
-    stars = int(round(score))
-    return "★" * min(stars, 5) + "☆" * max(5 - stars, 0)
+    stars = max(1, min(5, int(round(score))))
+    return "★" * stars + "☆" * (5 - stars)
 
 
 def print_recommendations(
@@ -241,7 +265,7 @@ def main():
 
     # ── --similar-to <movie_id> ──
     if args.similar_to:
-        model = load_model(args.model, model_dir)
+        model = load_model(args.model, model_dir, movies_df=movies)
         if model is None:
             return
         try:
@@ -267,7 +291,7 @@ def main():
 
     # ── --user <id> (recommendation) ──
     if args.user:
-        model = load_model(args.model, model_dir)
+        model = load_model(args.model, model_dir, movies_df=movies)
         if model is None:
             return
         recs = model.recommend(args.user, n=args.topk, exclude_seen=True)
