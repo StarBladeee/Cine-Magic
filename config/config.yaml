@@ -1,0 +1,89 @@
+# CineMagic 全局配置文件
+
+# 数据路径
+data:
+  douban_dir: "data/douban"
+  movies_file: "top200.csv"
+  ratings_file: "top200_ratings.csv"
+  # 全量数据（后续使用）
+  full_movies_file: "movies.csv"
+  full_ratings_file: "ratings.csv"
+
+# 数据预处理
+preprocessing:
+  min_user_ratings: 5       # 用户最少评分数，低于此的过滤
+  min_item_ratings: 5       # 电影最少被评分数，低于此的过滤
+  test_size: 0.2            # 测试集比例
+  test_split_method: "random"  # random 或 time
+  random_seed: 42
+
+# 模型参数
+models:
+  popularity:
+    use_douban_score: true
+    use_douban_votes: true
+    score_weight: 0.6       # 豆瓣评分权重
+    votes_weight: 0.4       # 评分数权重（log归一化）
+    min_votes: 100          # 最少评分数阈值
+
+  svd:
+    n_factors: 50
+    n_epochs: 20
+    lr_all: 0.005
+    reg_all: 0.02
+    biased: true
+    random_state: 42
+
+  user_knn:
+    k: 40
+    min_k: 1
+    sim_options:
+      name: "pearson_baseline"
+      user_based: true
+      shrinkage: 100
+    random_state: 42
+
+  item_knn:
+    k: 40
+    min_k: 1
+    sim_options:
+      name: "pearson_baseline"
+      user_based: false
+      shrinkage: 100
+    random_state: 42
+
+  # Phase 2: LightGCN 图协同过滤（召回）
+  lightgcn:
+    embed_dim: 64            # Embedding 维度
+    n_layers: 3              # 图卷积层数
+    lr: 1e-3                 # 学习率
+    n_epochs: 100            # 训练轮数
+    batch_size: 2048         # BPR 采样 batch size
+    reg_weight: 1e-4         # L2 正则化系数
+    top_k: 50                # 召回候选集大小
+    early_stop_patience: 10  # 早停轮数（验证集 NDCG 不涨则停）
+    num_neg_samples: 1       # 每个正样本配几个负样本
+    device: "cuda"           # 训练设备
+
+  # Phase 2: DeepFM 精排
+  deepfm:
+    sparse_embed_dim: 8      # 稀疏 ID 的 Embedding 维度
+    deep_layers: [128, 64, 32] # DNN 隐层结构
+    dropout: 0.2             # Dropout 比例
+    lr: 1e-3                 # 学习率
+    n_epochs: 50             # 训练轮数
+    batch_size: 256          # Batch size
+    rating_pos_threshold: 4.0   # 正样本阈值
+    rating_neg_threshold: 2.0   # 负样本阈值
+    early_stop_patience: 5   # 早停轮数
+    device: "cuda"           # 训练设备
+
+# 评估
+evaluation:
+  top_k_values: [5, 10, 20]
+  rating_threshold: 3.5   # >= 此评分视为"喜欢"，用于分类指标
+
+# 输出
+output:
+  model_dir: "models"
+  output_dir: "output"

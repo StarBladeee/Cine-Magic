@@ -1,0 +1,7 @@
+我想要基于豆瓣电影数据集，设计一个电影推荐系统（名为CineMagic）
+该系统可以根据用户历史观影信息（看过的电影，给它们打的分数等），给用户推荐适合他们的电影
+数据在data/douban目录下，可以先用top200的数据，然后再在更大的数据集上训练
+数据说明：
+1. movies.csv（电影元信息）：有NAME,ALIAS,ACTORS,COVER,DIRECTORS,DOUBAN_SCORE,DOUBAN_VOTES,GENRES,IMDB_ID,LANGUAGES,MINS,OFFICIAL_SITE,REGIONS,RELEASE_DATE,SLUG,STORYLINE,TAGS,YEAR,ACTOR_IDS,DIRECTOR_IDS这些信息
+2. ratings.csv（交互信息）: 有ratingId,userId,movieId,rating,timestamp这些字段 
+你需要思考目前学界和业界SOTA的推荐系统架构有哪些，以及哪一种最适合我的项目

@@ -1,0 +1,5 @@
+
+__pycache__/
+*.pyc
+data/douban/movies.csv
+data/douban/ratings.csv
